@@ -65,9 +65,9 @@ streamlit run app.py
 - Key Opportunities
 - Suggested Next Steps
 
-#**🙌 Contributing**<br>
+**🙌 Contributing**<br>
 Contributions are welcome! If you'd like to help improve this project, please open an issue or pull request.
 
-#**👥 Maintainers**<br>
+**👥 Maintainers**<br>
 Sowjanya Kodam
 https://github.com/sowjanyakodam
