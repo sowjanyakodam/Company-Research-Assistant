@@ -14,6 +14,9 @@ Automatically generates clean, structured account plans with company overview, n
 **🔄 Section-Level Updates**<br>
 Revise any section of the account plan, anytime, without full regeneration.
 
+**🎯 Personalized & Context-Aware Plans (New Feature)**<br>
+The agent adapts the account plan based on the user’s intent, conversation style, and follow-up requirements - ensuring each plan feels customized and relevant.
+
 **🌐 Real-Time Research**<br>
 Pull real company details, news, and web insights using SerpAPI, synthesized by an LLM into a unified report.
 
