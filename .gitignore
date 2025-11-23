@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+venv/
+.env
+*.env
+.env.*
+
+# Streamlit
+.streamlit/
+
+# Mac / Windows / Linux system files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Python build
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Keys (never commit)
+api_key.txt
+secret.txt
