@@ -127,6 +127,25 @@ st.markdown(
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
+    /* 🆕 Context badge styling */
+    .context-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+        box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
     /* Account plan formatting */
     .account-plan-title {
         font-size: 28px;
@@ -136,14 +155,60 @@ st.markdown(
         letter-spacing: 0.5px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
+    /* Reduce spacing between any two sections */
+.plan-container .section-title {
+    margin-top: 10px !important;
+    margin-bottom: 4px !important;
+}
 
-    .section-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin-top: 20px;
-        margin-bottom: 8px;
-        color: #64b5f6;
-    }
+/* Remove large blank gaps caused by <p><br></p> */
+.plan-container p:has(br) {
+    margin: 0 !important;
+    line-height: 0.6 !important;
+}
+
+/* Reduce gap after each section paragraph */
+.plan-container p {
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
+}
+
+
+    /* ------------------------------------------------
+   FIX: Reduce space between account-plan sections ONLY
+   (Title size remains unchanged)
+-------------------------------------------------- */
+
+/* Section titles inside account plan */
+.plan-container h2,
+.plan-container h3,
+.plan-container h4 {
+    margin-top: 14px !important;
+    margin-bottom: 6px !important;
+}
+
+/* Reduce spacing between section text */
+.plan-container p {
+    margin: 3px 0 !important;
+    line-height: 1.28 !important;
+}
+
+/* Reduce spacing in bullet lists */
+.plan-container li {
+    margin: 2px 0 !important;
+    line-height: 1.25 !important;
+}
+
+/* Space before each section */
+.section-title {
+    margin-top: 12px !important;
+    margin-bottom: 4px !important;
+    font-size: 20px;
+    font-weight: 600;
+    color: #64b5f6;
+}
+
+
 
     /* Account plan container */
     .plan-container {
@@ -278,6 +343,10 @@ if "account_plan" not in st.session_state:
 if "processing" not in st.session_state:
     st.session_state.processing = False
 
+# 🆕 NEW: Track user context
+if "user_context" not in st.session_state:
+    st.session_state.user_context = None
+
 # -------------------------------
 # HELPER FUNCTIONS
 # -------------------------------
@@ -310,6 +379,8 @@ def clear_chat():
     """Clear chat history and account plan"""
     st.session_state.messages = []
     st.session_state.account_plan = ""
+    # 🆕 NEW: Also clear user context
+    st.session_state.user_context = None
     st.rerun()
 
 def download_plan():
@@ -320,8 +391,34 @@ def download_plan():
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
         from reportlab.lib.units import inch
         from reportlab.lib.colors import HexColor
+        from html.parser import HTMLParser
         import io
         import re
+        
+        # HTML to text converter
+        class HTMLStripper(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.reset()
+                self.strict = False
+                self.convert_charrefs = True
+                self.text = []
+            
+            def handle_data(self, data):
+                self.text.append(data)
+            
+            def get_data(self):
+                return ''.join(self.text)
+        
+        def strip_html_tags(html):
+            """Remove all HTML tags and return plain text"""
+            stripper = HTMLStripper()
+            try:
+                stripper.feed(html)
+                return stripper.get_data()
+            except:
+                # Fallback to regex if parser fails
+                return re.sub('<[^<]+?>', '', html)
         
         # Create PDF buffer
         buffer = io.BytesIO()
@@ -374,36 +471,44 @@ def download_plan():
         story.append(Paragraph("Account Plan", title_style))
         story.append(Spacer(1, 0.2*inch))
         
-        # Simple HTML to PDF conversion
-        # Split by common HTML tags and format accordingly
+        # Split content into sections
         lines = content.split('\n')
         
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-                
-            # Remove HTML tags but detect their type
-            clean_line = re.sub('<[^<]+?>', '', line)
-            clean_line = clean_line.replace('&nbsp;', ' ').strip()
             
-            if not clean_line:
-                continue
-            
-            # Detect if it's a heading (contains bold or section markers)
-            if any(tag in line.lower() for tag in ['<h1', '<h2', '<h3', '<strong>', '<b>']):
-                story.append(Paragraph(clean_line, heading_style))
+            # Detect if it's a section heading
+            if "class='section-title'" in line or '<h1' in line.lower() or '<h2' in line.lower() or '<h3' in line.lower():
+                clean_line = strip_html_tags(line).strip()
+                if clean_line:
+                    story.append(Paragraph(clean_line, heading_style))
+            # Detect if it contains strong/bold tags
+            elif '<strong>' in line.lower() or '<b>' in line.lower():
+                clean_line = strip_html_tags(line).strip()
+                if clean_line:
+                    story.append(Paragraph(clean_line, heading_style))
             else:
-                story.append(Paragraph(clean_line, body_style))
+                # Regular content
+                clean_line = strip_html_tags(line).strip()
+                if clean_line:
+                    # Escape special characters for ReportLab
+                    clean_line = clean_line.replace('&', '&amp;')
+                    clean_line = clean_line.replace('<', '&lt;')
+                    clean_line = clean_line.replace('>', '&gt;')
+                    story.append(Paragraph(clean_line, body_style))
         
         # Build PDF
-        doc.build(story)
-        
-        # Get PDF data
-        pdf_data = buffer.getvalue()
-        buffer.close()
-        
-        return pdf_data
+        try:
+            doc.build(story)
+            pdf_data = buffer.getvalue()
+            buffer.close()
+            return pdf_data
+        except Exception as e:
+            print(f"PDF generation error: {e}")
+            buffer.close()
+            return None
     return None
 
 # -------------------------------
@@ -412,12 +517,18 @@ def download_plan():
 left, right = st.columns([0.55, 0.45], gap="large")
 
 with left:
-    # Header with clear button
+    # Header with clear button and context badge
     col1, col2 = st.columns([0.8, 0.2])
     with col1:
-        st.markdown("<div class='chat-title'> CorpResearch AI — Company Research Chatbot</div>", unsafe_allow_html=True)
+        # 🆕 NEW: Display context badge if active
+        title_html = "<div class='chat-title'>💼 CorpResearch AI — Company Research Chatbot"
+        if st.session_state.user_context and st.session_state.user_context != "general":
+            context_display = st.session_state.user_context.title()
+            title_html += f"<span class='context-badge'>🎯 {context_display} Mode</span>"
+        title_html += "</div>"
+        st.markdown(title_html, unsafe_allow_html=True)
     with col2:
-        if st.button(" Clear", help="Clear chat history"):
+        if st.button("🗑️ Clear", help="Clear chat history"):
             clear_chat()
     
     # Display chat history
@@ -440,10 +551,11 @@ with left:
         
         if last_role == "user":
             try:
-                # Process using agent
-                bot_reply, updated_plan = process_user_message(
+                # 🆕 UPDATED: Process using agent with context support
+                bot_reply, updated_plan, new_context = process_user_message(
                     last_msg,
-                    current_plan=st.session_state.account_plan
+                    current_plan=st.session_state.account_plan,
+                    user_context=st.session_state.user_context  # Pass current context
                 )
                 
                 # Save bot reply
@@ -452,6 +564,10 @@ with left:
                 # Update account plan if provided
                 if updated_plan:
                     st.session_state.account_plan = updated_plan
+                
+                # 🆕 NEW: Update user context if changed
+                if new_context:
+                    st.session_state.user_context = new_context
                 
             except Exception as e:
                 error_msg = f"⚠️ An error occurred: {str(e)}"
@@ -466,13 +582,13 @@ with right:
     # Header with download button
     col1, col2 = st.columns([0.7, 0.3])
     with col1:
-        st.markdown("<div class='account-plan-title'> Generated Account Plan</div>", unsafe_allow_html=True)
+        st.markdown("<div class='account-plan-title'>📋 Generated Account Plan</div>", unsafe_allow_html=True)
     with col2:
         if st.session_state.account_plan:
             plan_pdf = download_plan()
             if plan_pdf:
                 st.download_button(
-                    label=" Download",
+                    label="⬇️ Download",
                     data=plan_pdf,
                     file_name="account_plan.pdf",
                     mime="application/pdf",
@@ -481,10 +597,19 @@ with right:
     
     # Display account plan
     if st.session_state.account_plan:
+
+        # Remove extra <br><br> gaps generated by LLM
+        clean_plan = (
+            st.session_state.account_plan
+            .replace("<br><br>", "")      # Remove double line gaps
+            .replace("<br>", "")          # Remove single breaks (optional)
+        )
+
         st.markdown(
-            f"<div class='plan-container'>{st.session_state.account_plan}</div>",
+            f"<div class='plan-container'>{clean_plan}</div>",
             unsafe_allow_html=True
         )
+
     else:
         st.markdown(
             "<div class='plan-container'><div class='empty-state'>💡 Your account plan will appear here after you request one from the assistant...</div></div>",

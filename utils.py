@@ -1,3 +1,4 @@
+
 # utils.py
 import re
 from datetime import datetime
@@ -20,3 +21,4 @@ def extract_company_name(text: str) -> str | None:
     if match:
         return match.group(1).strip().title()
     return None
+
