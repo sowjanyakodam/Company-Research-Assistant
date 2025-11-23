@@ -25,13 +25,13 @@ PPT exports, company comparisons, voice interaction, persistent user memories, a
 
 **🧩 Project Structure**<br>
 
-/project
+/project<br>
 │── app.py          → Streamlit UI + Chat + PDF Download  
 │── agent.py        → LLM core logic + Section updates  
 │── search.py       → SerpAPI integrations  
 │── utils.py        → Helper utilities  
-│── requirements.txt
-│── .env.example
+│── requirements.txt<br>
+│── .env.example<br>
 │── README.md
 
 **⚙️ Tech Stack**<br>
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 
 **3. Set Environment Variables**<br>
 ### Create a .env file<br>
-GROQ_API_KEY=your_groq_key
+GROQ_API_KEY=your_groq_key<br>
 SERPAPI_KEY=your_serpapi_key
 
 **4. Run the App**<br>
@@ -69,5 +69,5 @@ streamlit run app.py
 Contributions are welcome! If you'd like to help improve this project, please open an issue or pull request.
 
 **👥 Maintainers**<br>
-Sowjanya Kodam
+Sowjanya Kodam<br>
 https://github.com/sowjanyakodam
